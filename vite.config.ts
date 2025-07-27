@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: 'schifyor.github.io/allergen-camera',
+  base: '/allergen-camera/',
 });
