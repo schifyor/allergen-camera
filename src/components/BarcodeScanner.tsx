@@ -5,45 +5,48 @@ interface BarcodeScannerProps {
   onDetected: (barcode: string) => void;
 }
 
-const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+export function BarcodeScanner({ onDetected }: { onDetected: (code: string) => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   const [scanning, setScanning] = useState(false);
-  const codeReader = useRef<BrowserMultiFormatReader | null>(null);
 
-  useEffect(() => {
-    codeReader.current = new BrowserMultiFormatReader();
-
-    return () => {
-      if (codeReader.current) {
-        codeReader.current.reset();
-      }
-    };
-  }, []);
-
-  const startScan = () => {
+  const startScan = async () => {
     setScanning(true);
-    if (!videoRef.current || !codeReader.current) return;
-    codeReader.current.decodeFromVideoDevice(
-      undefined,
-      videoRef.current!,
-      (result: Result | undefined, err) => {
-        if (result) {
-          setScanning(false);
-          codeReader.current?.reset();
-          stopScan();
-          onDetected(result.getText());
+    const videoElement = videoRef.current;
+    if (!videoElement) {
+      console.error("Kein Videoelement gefunden.");
+      return;
+    }
+
+    if (!codeReaderRef.current) {
+      codeReaderRef.current = new BrowserMultiFormatReader();
+    }
+
+    try {
+      console.log("Starte Kamera...");
+      await codeReaderRef.current.decodeFromVideoDevice(
+        undefined,
+        videoElement,
+        (result: Result | undefined, err) => {
+          if (result) {
+            console.log("Barcode erkannt:", result.getText());
+            stopScan();
+            onDetected(result.getText());
+          }
+
+          if (err && err.name !== "NotFoundException") {
+            console.error("Scanfehler:", err);
+          }
         }
-        // Fehler ignorieren, falls kein Barcode gefunden wurde (NotFoundException)
-        if (err && !(err.name === "NotFoundException")) {
-          console.error(err);
-        }
-      }
-    );
+      );
+    } catch (err) {
+      console.error("Fehler beim Zugriff auf Kamera:", err);
+    }
   };
 
   const stopScan = () => {
     setScanning(false);
-    codeReader.current?.reset();
+    codeReaderRef.current?.reset();
   };
 
   return (
