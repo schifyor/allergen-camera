@@ -5,72 +5,73 @@ interface BarcodeScannerProps {
   onDetected: (barcode: string) => void;
 }
 
-export function BarcodeScanner({ onDetected }: { onDetected: (code: string) => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [scanning, setScanning] = useState(false);
+  const codeReader = useRef<BrowserMultiFormatReader | null>(null);
 
-  const startScan = async () => {
+  useEffect(() => {
+    codeReader.current = new BrowserMultiFormatReader();
+
+    return () => {
+      if (codeReader.current) {
+        codeReader.current.reset();
+      }
+    };
+  }, []);
+
+  const startScan = () => {
     setScanning(true);
-    const videoElement = videoRef.current;
-    if (!videoElement) {
-      console.error("Kein Videoelement gefunden.");
-      return;
-    }
-
-    if (!codeReaderRef.current) {
-      codeReaderRef.current = new BrowserMultiFormatReader();
-    }
-
-    try {
-      console.log("Starte Kamera...");
-      await codeReaderRef.current.decodeFromVideoDevice(
-        undefined,
-        videoElement,
-        (result: Result | undefined, err) => {
-          if (result) {
-            console.log("Barcode erkannt:", result.getText());
-            stopScan();
-            onDetected(result.getText());
-          }
-
-          if (err && err.name !== "NotFoundException") {
-            console.error("Scanfehler:", err);
-          }
+    if (!videoRef.current || !codeReader.current) return;
+    codeReader.current.decodeFromVideoDevice(
+      undefined,
+      videoRef.current!,
+      (result: Result | undefined, err) => {
+        if (result) {
+          setScanning(false);
+          codeReader.current?.reset();
+          stopScan();
+          onDetected(result.getText());
         }
-      );
-    } catch (err) {
-      console.error("Fehler beim Zugriff auf Kamera:", err);
-    }
+        // Fehler ignorieren, falls kein Barcode gefunden wurde (NotFoundException)
+        if (err && !(err.name === "NotFoundException")) {
+          console.error(err);
+        }
+      }
+    );
   };
 
   const stopScan = () => {
     setScanning(false);
-    codeReaderRef.current?.reset();
+    codeReader.current?.reset();
   };
 
   return (
-    <div>
-      <div className="text-center">
-        <button 
+    <div className="text-center">
+      {!scanning ? (
+        <button
           onClick={startScan}
-          disabled={scanning}
-          className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md font-semibold transition-colors duration-200"
+          className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-md font-semibold"
         >
           Barcode scannen
         </button>
-      </div>
-      {scanning && (
-        <div>
+      ) : (
+        <>
           <video
             ref={videoRef}
-            style={{ width: "100%", maxWidth: 400 }}
+            className="w-full max-w-sm mt-4 border"
             muted
-            playsInline
             autoPlay
+            playsInline
           />
-          <button onClick={stopScan}>Scan abbrechen</button>
-        </div>
+          <br />
+          <button
+            onClick={stopScan}
+            className="mt-4 px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md"
+          >
+            Scan abbrechen
+          </button>
+        </>
       )}
     </div>
   );
