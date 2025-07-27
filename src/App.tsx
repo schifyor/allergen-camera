@@ -69,7 +69,10 @@ function App() {
         {/* Toggle */}
         <div className="px-6 py-3 text-center">
           <button
-            onClick={() => setMode("barcode")}
+            onClick={() => {
+              setMode("barcode");
+              setOcrText("");
+            }}
             className={`px-6 py-3 rounded-md mr-2 font-semibold transition-colors hover:bg-green-700 duration-200
                         ${mode === "barcode" ? "bg-green-600 text-white" : "bg-gray-300 text-black"}
                       `}

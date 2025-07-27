@@ -24,9 +24,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
     setScanning(true);
     if (!videoRef.current || !codeReader.current) return;
     codeReader.current.decodeFromVideoDevice(
-      undefined,
+      null,
       videoRef.current!,
-      (result: Result | undefined, err) => {
+      (result: Result | null, err) => {
         if (result) {
           setScanning(false);
           codeReader.current?.reset();
