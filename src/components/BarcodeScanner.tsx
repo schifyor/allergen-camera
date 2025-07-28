@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { BrowserMultiFormatReader, Result } from "@zxing/library";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 
 interface BarcodeScannerProps {
   onDetected: (barcode: string) => void;
@@ -10,32 +10,39 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
   const [scanning, setScanning] = useState(false);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
 
+  const activeScan = useRef<ReturnType<BrowserMultiFormatReader["decodeFromVideoDevice"]> | null>(null);
+
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
 
     return () => {
-      if (codeReader.current) {
-        codeReader.current.reset();
+      if (activeScan.current) {
+        activeScan.current.then((result) => result?.stop());
       }
     };
   }, []);
 
   const startScan = () => {
     setScanning(true);
-    if (!videoRef.current || !codeReader.current) return;
-    codeReader.current.decodeFromVideoDevice(
-      null,
-      videoRef.current!,
-      (result: Result | null, err) => {
+
+    if (!videoRef.current || !codeReader.current) {
+      console.error("Video-Element oder CodeReader nicht vorhanden");
+      return;
+    }
+
+    console.log("Starte Kamera und Barcode-Scan...");
+
+    activeScan.current = codeReader.current.decodeFromVideoDevice(
+      undefined,
+      videoRef.current,
+      (result, error) => {
         if (result) {
-          setScanning(false);
-          codeReader.current?.reset();
-          stopScan();
+          console.log("Barcode erkannt:", result.getText());
           onDetected(result.getText());
+          stopScan();
         }
-        // Fehler ignorieren, falls kein Barcode gefunden wurde (NotFoundException)
-        if (err && !(err.name === "NotFoundException")) {
-          console.error(err);
+        if (error && error.name !== "NotFoundException") {
+          console.error("Scan-Fehler:", error);
         }
       }
     );
@@ -43,7 +50,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
 
   const stopScan = () => {
     setScanning(false);
-    codeReader.current?.reset();
+    if (activeScan.current) {
+      activeScan.current.then((result) => result?.stop());
+      activeScan.current = null;
+    }
+    console.log("Scan gestoppt");
   };
 
   return (

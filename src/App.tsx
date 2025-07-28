@@ -72,6 +72,7 @@ function App() {
             onClick={() => {
               setMode("barcode");
               setOcrText("");
+              console.log("barcode mode");
             }}
             className={`px-6 py-3 rounded-md mr-2 font-semibold transition-colors hover:bg-green-700 duration-200
                         ${mode === "barcode" ? "bg-green-600 text-white" : "bg-gray-300 text-black"}
